@@ -17,6 +17,8 @@ We will use the publicly available COVID-19 dataset provided by [Our World in Da
 
 We chose this dataset because it is comprehensive and regularly updated, and it allows us to compare two critical aspects of the pandemic: the virus's spread and the vaccination efforts across the world.
 
+**Note:** The dataset `owid-covid-data-sample.csv` uploaded to this repository is a small sample of the full dataset, provided for demonstration purposes to showcase the data format. During implementation, we will use the complete dataset.
+
 ---
 
 ## 4. Weekly Plan
