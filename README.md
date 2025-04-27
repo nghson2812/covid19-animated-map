@@ -1,7 +1,7 @@
 # Project Proposal for COMP4010/5120 – Project 2
 
 ## 1. One-sentence high-level goal
-Create two interactive, animated world maps to visualize the global spread of COVID-19 and recovery efforts over time, showing how the virus expanded and how the world has recovered.
+Create two interactive, animated world maps using R to visualize the global spread of COVID-19 and recovery efforts over time, showing how the virus expanded and how the world has recovered.
 
 ---
 
