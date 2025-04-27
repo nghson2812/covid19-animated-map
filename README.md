@@ -8,8 +8,7 @@ Create interactive, animated spatio-temporal world maps using R to visualize the
 ## 2. Goal and Motivation
 The goal of this project is to create two parallel, animated world maps that visualize the spread of COVID-19 and the global vaccination efforts over time. The first map will display the evolution of the COVID-19 pandemic, including case numbers and deaths, while the second map will track vaccination rates globally. By showing these two maps side-by-side, we aim to allow users to compare the spread of the virus with the vaccination rollout, highlighting how vaccination efforts have influenced the course of the pandemic.
 
-This project is interesting because it combines the visualization of critical pandemic data in a clear, accessible way. It addresses the challenge of understanding the correlation between the virus's spread and vaccination rates, providing insights into the effectiveness of global vaccination efforts. By making this data interactive, we hope to raise awareness about the importance of timely interventions and vaccinations in controlling pandemics and to give people a clearer understanding of how the world has recovered over time.
-
+This project is interesting because it combines the visualization of critical pandemic data in a clear, accessible way. It addresses the challenge of understanding the correlation between the virus's spread and vaccination rates, providing insights into the effectiveness of global vaccination efforts. 	Through the use of interactive data, this project aims to provide a comprehensive overview of the global recovery from COVID-19 over time, while also underscoring the critical importance of timely interventions and vaccinations in managing pandemics.
 ---
 
 ## 3. Data Source and Collection
