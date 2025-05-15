@@ -6,9 +6,25 @@ Create interactive, animated spatio-temporal world maps using R to visualize the
 ---
 
 ## 2. Goal and Motivation
-The goal of this project is to create two parallel, animated world maps that visualize the spread of COVID-19 and the global vaccination efforts over time. The first map will display the evolution of the COVID-19 pandemic, including case numbers and deaths, while the second map will track vaccination rates globally. By showing these two maps side-by-side, we aim to allow users to compare the spread of the virus with the vaccination rollout, highlighting how vaccination efforts have influenced the course of the pandemic.
 
-This project is interesting because it combines the visualization of critical pandemic data in a clear, accessible way. It addresses the challenge of understanding the correlation between the virus's spread and vaccination rates, providing insights into the effectiveness of global vaccination efforts. 	Through the use of interactive data, this project aims to provide a comprehensive overview of the global recovery from COVID-19 over time, while also underscoring the critical importance of timely interventions and vaccinations in managing pandemics.
+This project aims to build **two parallel animated world maps**:
+
+- One tracking the **spread of COVID-19** (cases and deaths)  
+- One visualizing the **progress of vaccination efforts**
+
+By placing these maps side-by-side and enabling user interaction, we want to show not only how the pandemic evolved but also how global recovery efforts unfolded. This visualization will help users **compare the timing and regional disparities** between outbreaks and responses, and understand how **timely interventions**, like vaccine rollouts and policy actions, influenced the outcome.
+
+To strengthen the narrative and analytical depth, we also plan to incorporate **additional normalized metrics** such as:
+
+- **Deaths or cases per 100,000 population**
+- **Vaccination thresholds** (e.g., % population with one dose)
+- **Key milestone dates** (e.g., WHO emergency declarations, first vaccine authorizations)
+
+**Key Research Questions**. To guide our analysis and storytelling, we focus on answering:
+  - How did COVID-19 spread globally over time, and how did different regions recover?
+  - What relationship can be observed between the timing of vaccination rollouts and reductions in case or death counts?
+
+In general, this project is interesting because it combines the visualization of critical pandemic data in a clear, accessible way. It addresses the challenge of understanding the correlation between the virus's spread and vaccination rates, providing insights into the effectiveness of global vaccination efforts. Through the use of interactive data, this project aims to provide a comprehensive overview of the global recovery from COVID-19 over time, while also underscoring the critical importance of timely interventions and vaccinations in managing pandemics.
 
 ---
 
