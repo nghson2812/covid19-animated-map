@@ -1,0 +1,317 @@
+---
+title: "data_visualization_project_2"
+author: "Nguyen Hoang Son - V202100578"
+date: "2025-05-26"
+output: html_document
+---
+
+```{r}
+# install.packages("rnaturalearth")
+# install.packages("rnaturalearthdata")
+# install.packages("zoo")
+```
+
+```{r}
+# Core wrangling / plotting
+library(tidyverse)      # dplyr, tidyr, ggplot2, readr …
+library(lubridate)      # easy date handling
+library(sf)             # simple-features objects
+library(rnaturalearth)  # quick world polygons
+library(gganimate)      # turn static ggplots into animations
+library(viridis)        # colour-blind-friendly palettes
+library(zoo)
+```
+
+```{r}
+world <- ne_countries(scale = "medium", returnclass = "sf") |> 
+         st_as_sf() |>                     # ensure sf format
+         select(iso_a3, geometry)          # keep only id + geometry
+```
+
+
+```{r}
+owid <- read_csv("owid-covid-data.csv",
+                 col_types = cols(.default = "d", 
+                                  iso_code = col_character(),
+                                  continent = col_character(),
+                                  location = col_character(),
+                                  date = col_date())) |>
+         filter(!str_detect(iso_code, "OWID"))      # drop aggregates
+
+# Arrange and fill per country
+owid <- owid |> 
+  arrange(iso_code, date) |> 
+  group_by(iso_code) |> 
+  mutate(
+    people_fully_vaccinated = zoo::na.locf(people_fully_vaccinated, na.rm = FALSE),
+    people_vaccinated = zoo::na.locf(people_vaccinated, na.rm = FALSE),
+    total_vaccinations = zoo::na.locf(total_vaccinations, na.rm = FALSE)
+  ) |> 
+  ungroup()
+```
+
+```{r}
+owid <- owid |> 
+  mutate(cases_pc100k = total_cases / population * 1e5,
+         deaths_pc100k = total_deaths / population * 1e5,
+         vax_pct       = people_fully_vaccinated / population * 100)
+```
+
+```{r}
+owid_monthly <- owid %>%
+  mutate(month_date = floor_date(date, unit = "month")) %>%
+  group_by(iso_code, month_date) %>%
+  slice_max(order_by = date, n = 1, with_ties = FALSE) %>%
+  ungroup()
+
+owid_monthly1 <- owid %>%
+  mutate(month_date = floor_date(date, unit = "month")) %>%
+  group_by(iso_code, month_date) %>%
+  mutate(
+    new_cases_month = sum(new_cases, na.rm = TRUE),
+    new_deaths_month = sum(new_deaths, na.rm = TRUE),
+    population_month = max(population, na.rm = TRUE)
+  ) %>%
+  slice_max(order_by = date, n = 1, with_ties = FALSE) %>%  # keep latest row for each month
+  ungroup() %>%
+  mutate(new_cases_pc100k = (new_cases_month / population_month) * 100000,
+         new_deaths_pc100k = (new_deaths_month / population_month) * 100000)
+```
+
+```{r}
+# Get all unique country codes from world map
+all_countries <- world$iso_a3
+
+# Get all unique week dates in your dataset
+all_weeks <- unique(owid_weekly$week_date)
+
+# Create a full grid of all combinations
+country_week_grid <- expand_grid(
+  iso_code = all_countries,
+  week_date = all_weeks
+)
+
+owid_complete <- country_week_grid |> 
+  left_join(owid_weekly, by = c("iso_code", "week_date"))
+
+# Get all unique country codes from world map
+all_countries <- world$iso_a3
+
+# Get all unique month dates in your dataset
+all_months <- unique(owid_monthly1$month_date)
+
+# Create a full grid of all combinations
+country_month_grid <- expand_grid(
+  iso_code = all_countries,
+  month_date = all_months
+)
+
+# Join with monthly data
+owid_complete_month <- country_month_grid |> 
+  left_join(owid_monthly1, by = c("iso_code", "month_date"))
+```
+
+```{r}
+covid_map_month <- world %>% 
+  # Expand world map by all months to keep full geometry for each month
+  tidyr::crossing(month_date = unique(owid_complete_month$month_date)) %>%
+  # Join your complete monthly COVID data by country and month
+  left_join(owid_complete_month, by = c("iso_a3" = "iso_code", "month_date")) %>%
+  # Convert month_date to factor for discrete animation frames
+  mutate(month_date = factor(month_date))
+```
+
+```{r}
+#print(covid_map_month)
+```
+
+```{r}
+saveRDS(covid_map_month, file = "covid_map_month.rds")
+```
+
+```{r}
+p <- ggplot(covid_map_month) +
+  geom_sf(aes(geometry = geometry, fill = cases_pc100k), color = "white", size = 0.1) +
+  scale_fill_distiller(palette = "YlOrRd", na.value = "gray90", trans = "log10", direction = 1) +
+  theme_void() +
+  labs(
+    title = "COVID-19 Total Cases per 100k - {closest_state}",
+    fill = "Cases per 100k",
+    caption = "Source: Our World in Data"
+  ) +
+  theme(
+    plot.title = element_text(size = 18, face = "bold", hjust = 0.5),
+    plot.caption = element_text(size = 10, hjust = 1),
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 10)
+  ) +
+  transition_states(month_date, transition_length = 1, state_length = 0) +
+  ease_aes("linear")
+
+anim <- animate(p, width = 1200, height = 800, fps = 5, renderer = gifski_renderer())
+anim_save("covid_map_case_p100k.gif", animation = anim)
+```
+
+
+```{r}
+p <- ggplot(covid_map_month) +
+  geom_sf(aes(geometry = geometry, fill = vax_pct), color = "white", size = 0.1) +
+  scale_fill_distiller(palette = "plasma", na.value = "gray90", trans = "log10", direction = 1) +
+  theme_void() +
+  labs(
+    title = "Percentage of Population Fully Vaccinated - {closest_state}",
+    fill = "% fully vaccinated",
+    caption = "Source: Our World in Data"
+  ) +
+  theme(
+    plot.title = element_text(size = 18, face = "bold", hjust = 0.5),
+    plot.caption = element_text(size = 10, hjust = 1),
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 10)
+  ) +
+  transition_states(month_date, transition_length = 1, state_length = 0) +
+  ease_aes("linear")
+
+anim <- animate(p, width = 1200, height = 800, fps = 5, renderer = gifski_renderer())
+anim_save("covid_map_vax_pct.gif", animation = anim)
+```
+
+```{r}
+test_date <- "2024-08-01"
+ggplot(filter(covid_map_month, month_date == test_date)) +
+  geom_sf(aes(geometry = geometry, fill = new_cases_pc100k), color = "white", size = 0.1) +  # White borders
+  scale_fill_distiller(palette = "YlOrRd", na.value = "gray90", trans = "log10", direction = 1) +
+  theme_void() +
+  labs(title = paste("COVID-19 Total Cases on", test_date)) +
+  labs(
+    title = paste("COVID-19 Total Cases on", test_date),
+    fill = "Cases per 100k",
+    caption = "Source: Our World in Data"
+  ) +
+  theme(
+    plot.title = element_text(size = 18, face = "bold", hjust = 0.5),
+    plot.caption = element_text(size = 10, hjust = 1),
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 10)
+  )
+```
+
+```{r}
+test_date <- "2022-12-01"
+ggplot(filter(covid_map_month, month_date == test_date)) +
+  geom_sf(aes(geometry = geometry, fill = new_cases_pc100k), color = "white", size = 0.1) +  # White borders
+  scale_fill_distiller(palette = "plasma", na.value = "gray90", trans = "log10", direction = 1) +
+  theme_void() +
+  labs(title = paste("COVID-19 Total Cases on", test_date)) +
+  labs(
+    title = "COVID-19 Total Cases per 100k - March 2021",
+    fill = "Cases per 100k",
+    caption = "Source: Our World in Data"
+  ) +
+  theme(
+    plot.title = element_text(size = 18, face = "bold", hjust = 0.5),
+    plot.caption = element_text(size = 10, hjust = 1),
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 10)
+  )
+```
+
+```{r}
+single_month <- covid_map_month |> 
+  filter(month_date == "2021-03-01")
+
+# Plot the static map
+ggplot(single_month) +
+  geom_sf(aes(geometry = geometry, fill = cases_pc100k), 
+          color = "white", size = 0.1) +
+  scale_fill_distiller(palette = "YlOrRd", 
+                       na.value = "gray90", 
+                       trans = "log10", 
+                       direction = 1,
+                       limits = c(0.001, quantile(single_month$cases_pc100k, 0.99, na.rm = TRUE)),
+                       oob = scales::squish) +
+  theme_void(base_size = 14) +
+  labs(
+    title = "COVID-19 Total Cases per 100k - March 2021",
+    fill = "Cases per 100k",
+    caption = "Source: Our World in Data"
+  ) +
+  theme(
+    plot.title = element_text(size = 18, face = "bold", hjust = 0.5),
+    plot.caption = element_text(size = 10, hjust = 1),
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 10)
+  )
+```
+
+```{r}
+ggplot(covid_map_month) +
+  geom_sf(aes(geometry = geometry, fill = total_cases), color = "white", size = 0.1) +
+  scale_fill_viridis_c(na.value = "gray90", trans = "log10") +
+  theme_void() +
+  labs(title = "COVID-19 Total Cases — {frame_time}") +
+  transition_time(month_date) +
+  ease_aes('linear')
+```
+
+
+```{r}
+make_world_anim <- function(df, value_col, title, legend_title,
+                            palette = "YlOrRd", max_val = NULL) {
+  
+  ggplot(df) +
+    geom_sf(aes(geometry = geometry, fill = .data[[value_col]]), color = "white", size = 0.1) +
+    scale_fill_distiller(palette = palette, na.value = "gray90", trans = "log10", direction = 1) +
+    theme_void() +
+    labs(
+      title = title,
+      subtitle = "{closest_state}",
+      fill = legend_title,
+      caption = "Source: Our World in Data"
+    ) +
+    theme(
+      plot.title = element_text(size = 18, face = "bold", hjust = 0.5),
+      plot.caption = element_text(size = 10, hjust = 1),
+      legend.title = element_text(size = 12),
+      legend.text = element_text(size = 10)
+    ) +
+    transition_states(month_date, transition_length = 1, state_length = 0) +
+    ease_aes("linear")
+}
+```
+
+```{r}
+anim_cases <- make_world_anim(covid_map,
+                              value_col   = "cases_pc100k",
+                              title       = "Cumulative COVID-19 Cases per 100 000",
+                              legend_title = "Cases / 100 000")
+animate(anim_cases, fps = 10, width = 1200, height = 800, renderer = gifski_renderer())
+anim_save("total_cases.gif")
+```
+
+```{r}
+anim_cases <- make_world_anim(covid_map_month,
+                              value_col   = "new_cases_pc100k",
+                              title       = "New COVID-19 Cases per 100,000 in a month",
+                              legend_title = "Cases / 100 000")
+animate(anim_cases, fps = 5, width = 1200, height = 800, renderer = gifski_renderer())
+anim_save("covid_map_new_cases.gif")
+```
+
+```{r}
+anim_cases <- make_world_anim(covid_map_month,
+                              value_col   = "new_deaths_pc100k",
+                              title       = "New COVID-19 Deaths per 100,000 in a month",
+                              legend_title = "Deaths / 100 000")
+animate(anim_cases, fps = 5, width = 1200, height = 800, renderer = gifski_renderer())
+anim_save("covid_map_new_deaths.gif")
+```
+
+```{r}
+anim_cases <- make_world_anim(covid_map_month,
+                              value_col   = "vax_pct",
+                              title       = "Percentage of Population Fully Vaccinated",
+                              legend_title = "% fully vaccinated", palette = "plasma")
+animate(anim_cases, fps = 5, width = 1200, height = 800, renderer = gifski_renderer())
+anim_save("covid_map_vax_pct.gif")
+```
